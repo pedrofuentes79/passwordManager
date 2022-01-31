@@ -234,8 +234,8 @@ class ShowAllPasswords(Frame):
     def __init__(self, master):
         Frame.__init__(self, master)
         all_passwords = get_all_passwords()
-        if all_passwords is None:
-            Label(self, text="You have not registered anyg password in the database yet").pack(side="top", fill="x", pady=10, padx=5)
+        if all_passwords == []:
+            Label(self, text="You have not registered any passwords in the database yet").pack(side="top", fill="x", pady=10, padx=5)
             Button(self, text="Return to start page",
                                 command=lambda: master.switch_frame(Menu)).pack(side="top", fill="x", pady=10, padx=5)
 
