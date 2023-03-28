@@ -1,6 +1,6 @@
-from Cryptodome.Protocol.KDF import PBKDF2
+from Crypto.Protocol.KDF import PBKDF2
 import hashlib
-from Cryptodome.Cipher import AES
+from Crypto.Cipher import AES
 from base64 import b64decode, b64encode
 
 #in windows its called Crypto.Cipher and Crypto.Protocol.KDF
@@ -41,8 +41,7 @@ def verify_master_password(master_password):
     '''                   
 
 
-    if hashed_compilation == master_password_hash:
-        return True
+    return hashed_compilation == master_password_hash
 
 
 
