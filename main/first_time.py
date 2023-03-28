@@ -1,4 +1,3 @@
-from io import UnsupportedOperation
 import json
 
 def first_time_check():

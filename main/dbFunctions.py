@@ -1,10 +1,9 @@
 import sqlite3
-from sqlite3.dbapi2 import OperationalError
 
 conn = sqlite3.connect("main.db")
 c = conn.cursor()
 
-def get_password(website, username):
+def get_encrypted_password(website, username):
     with conn:
         c.execute("SELECT * FROM main WHERE website=:website AND username=:username", 
                                         {'website': website, 'username': username})
@@ -15,10 +14,10 @@ def get_all_passwords():
         c.execute("SELECT * FROM main")
     return c.fetchall()
 
-def add_password(password, website, username):
+def add_password(encrypted_password, website, username):
         with conn: 
             c.execute("INSERT INTO main VALUES(:password, :website, :username)", 
-                                                       {'password': password, 
+                                                       {'password': encrypted_password, 
                                                         'website': website, 
                                                         'username': username})
                                                           
@@ -37,6 +36,7 @@ def delete_entry(website, username):
         c.execute("DELETE from main WHERE website=:website AND username=:username", {"website": website, "username": username})
 
 def check_existing_entry(website, username):
+    """Returns True if there is an existing entry, false otherwise"""
     with conn:
         c.execute("SELECT * FROM main WHERE website=:website AND username=:username", 
                                             {'website': website, 'username': username})    

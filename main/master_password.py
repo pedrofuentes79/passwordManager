@@ -1,13 +1,14 @@
-from Cryptodome.Protocol.KDF import PBKDF2
+from Crypto.Protocol.KDF import PBKDF2
 import hashlib
-from Cryptodome.Cipher import AES
+from Crypto.Cipher import AES
 from base64 import b64decode, b64encode
+
+#in windows its called Crypto.Cipher and Crypto.Protocol.KDF
+#in ubuntu it is called Cryptodome...
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #These are the functions to interact with the master password database, they are here for import reasons
 import sqlite3
-from sqlite3.dbapi2 import OperationalError
-
 
 conn = sqlite3.connect("main.db")
 c = conn.cursor()
@@ -40,12 +41,16 @@ def verify_master_password(master_password):
     '''                   
 
 
-    if hashed_compilation == master_password_hash:
-        return True
+    return hashed_compilation == master_password_hash
 
 
 
 def encrypt_password(password_to_encrypt):
+    """
+    This function receives a password and encrypts it with the key obtained
+    from the master password.
+    """
+
     master_password_hash = get_master_password()
 
     key = PBKDF2(str(master_password_hash), salt) 
@@ -58,12 +63,14 @@ def encrypt_password(password_to_encrypt):
     ciphertext, MACtag = cipher.encrypt_and_digest(data_conversion)
 
     # Adds the nonce to the already encrypted ciphertext, 
-    # this nonce will be then removed from the encrypted password and it will be used to create the same cipher object in order to decrypt
+    # this nonce will be then removed from the encrypted password and it will be used to create the 
+    # same cipher object in order to decrypt
     ciphertext_and_nonce = ciphertext + nonce              
 
+    #This is what will be stored in the database
     encoded_ciphertext = b64encode(ciphertext_and_nonce).decode()
 
-    return encoded_ciphertext                                   #This is what will be stored in the db
+    return encoded_ciphertext                           
 
 
 def decrypt_password(password_to_decrypt):

@@ -9,8 +9,8 @@ except OperationalError:
     pass
 
 #Internal functions
-from master_password import encrypt_password, verify_master_password, add_master_password
-from dbFunctions import add_password, check_existing_entry, delete_entry, get_password, edit_password, get_all_passwords
+from master_password import encrypt_password, verify_master_password, add_master_password, decrypt_password
+from dbFunctions import add_password, check_existing_entry, delete_entry, get_encrypted_password, edit_password, get_all_passwords
 from password_generator import password_generator
 from dbMemory import get_site, send_to_temp
 from first_time import first_time_check, change_first_time_to_false
@@ -37,15 +37,12 @@ class Login(Frame):
     def __init__(self, master):
 
         def checkPassword(master_password):
-        
-            verification = verify_master_password(master_password)
-
-            if verification:
+            if verify_master_password(master_password):
                 master.switch_frame(Menu)
             else:
                 Label(self, text="Wrong password, try again").pack()
-
         Frame.__init__(self, master)
+        
         Label(self, text="Please enter your username and master password").pack(side="top", fill="x", pady=10, padx=5)
         
         username_entry = Entry(self)
@@ -57,11 +54,13 @@ class Login(Frame):
         Button(self, text="Access", command=lambda:
                         checkPassword(master_password_entry.get())).pack(side="top", pady=10, padx=5)
 
+        
+
 
 class Register(Frame):
     def __init__(self, master):
 
-        def checkPassword(master_password, master_password2, username):
+        def checkMasterPassword(master_password, master_password2, username):
             if master_password == master_password2:
                 encrypted_master_password = master_password_hash_generator(master_password)
                 add_master_password(encrypted_master_password, username)
@@ -88,7 +87,7 @@ class Register(Frame):
 
 
         Button(self, text="Access", 
-            command=lambda:checkPassword(master_password_entry.get(), master_password_entry2.get(), username_entry.get())).pack()
+            command=lambda:checkMasterPassword(master_password_entry.get(), master_password_entry2.get(), username_entry.get())).pack()
 
 class Menu(Frame):
     def __init__(self, master):
@@ -96,8 +95,8 @@ class Menu(Frame):
         Label(self, text="This is the menu").pack(side="top", fill="x", pady=10, padx=7)
         Button(self, text="Access passwords",
                   command=lambda: master.switch_frame(AccessPasswords)).pack(side="top", fill="x", pady=10, padx=20)
-        Button(self, text="Show all passwords", 
-            command=lambda: master.switch_frame(ShowAllPasswords)).pack(side="top", fill="x", pady=10, padx=20)
+        Button(self, text="Show all entries", 
+            command=lambda: master.switch_frame(ShowAllEntries)).pack(side="top", fill="x", pady=10, padx=20)
         Button(self, text="Add a safe password", 
                   command=lambda: master.switch_frame(GeneratePassword)).pack(side="top", fill="x", pady=10, padx=20)        
         Button(self, text="Add an existing password", 
@@ -131,12 +130,12 @@ class AccessPasswords(Frame):
 
 class AddExistingPassword(Frame):
     def __init__(self, master):
-        def add(password, website, username):
+        def addToDatabase(password, website, username):
             try:
                 add_password(encrypt_password(password), website, username)
                 Label(self, text="Your password has been succesfully encrypted and added to the database").pack(fill="x", pady=10)
             except TypeError:
-                Label(self, text="Sorry, a type error has ocurred").pack()
+                Label(self, text="Sorry, a type error has ocurred.").pack()
                 Button(self, text="Return to start page",
                                     command=lambda: master.switch_frame(Menu)).pack()                
 
@@ -153,7 +152,7 @@ class AddExistingPassword(Frame):
         password.pack(side="top", pady=5, padx=5)
 
         Button(self, text="Submit", 
-                command=lambda:add(password.get(), website.get(), username.get())).pack(side="top", pady=5, padx=5)
+                command=lambda:addToDatabase(password.get(), website.get(), username.get())).pack(side="top", pady=5, padx=5)
 
         Button(self, text="Return to start page",
                   command=lambda: master.switch_frame(Menu)).pack(side="top", pady=10, padx=5)
@@ -162,9 +161,9 @@ class GeneratePassword(Frame):
     def __init__(self, master):
         def gen_password(website, username):
             if check_existing_entry(website, username) is False:
-                #Changes immediately to show the generated password
-                password = password_generator(20)
-                add_password(password, website, username)
+                #If there is no previous entry, adds a newly generated password to the database
+                generated_password = password_generator(20)
+                add_password(encrypt_password(generated_password), website, username)
                 send_to_temp(website, username)
                 master.switch_frame(ShowPassword)
             else:
@@ -172,6 +171,7 @@ class GeneratePassword(Frame):
                 def send_and_change():
                     send_to_temp(website, username)
                     master.switch_frame(ShowPassword)
+                   
                 for widget in Frame.winfo_children(self):
                     widget.destroy() 
                 Label(self, text="You already have a password in that website with the same username").pack(side="top", fill="x", pady=10, padx=5) 
@@ -196,14 +196,21 @@ class ShowPassword(Frame):
     def __init__(self, master):
         Frame.__init__(self, master)
         self.config(width=200)
+
+        def copy_to_clipboard(txt):
+            master.clipboard_clear()
+            master.clipboard_append(txt)
+            master.update()
+
         try:
             #Retrieves data from temp
             temp_website, temp_username = get_site()
             #Retrieves data from actual database with the data retrieved from temp
-            password, website, username = get_password(temp_website, temp_username)
+            encrypted_password, website, username = get_encrypted_password(temp_website, temp_username)
+            password = decrypt_password(encrypted_password)
             Label(self, text=f"This is the data from your password").pack(side="top", fill="x", pady=10)
 
-            #This large website_text code is due to the fact that it is copyable this way
+            #The labels are written in this way so that they can be copied.
             Label(self,text="Website:").pack()
             website_text = Text(self, height=1, borderwidth=0, width=30)
             website_text.insert(1.0, website)
@@ -222,6 +229,9 @@ class ShowPassword(Frame):
             password_text.pack()
             password_text.configure(state="disabled")
             
+            Button(self, text="Copy password", command=lambda: copy_to_clipboard(password)).pack(pady=5, padx=5)
+
+
             Button(self, text="Return to start page",
                     command=lambda: master.switch_frame(Menu)).pack(pady=10)
         except TypeError:
@@ -230,37 +240,25 @@ class ShowPassword(Frame):
                                 command=lambda: master.switch_frame(Menu)).pack(side="top", fill="x", pady=10, padx=5)
 
 
-class ShowAllPasswords(Frame):
+class ShowAllEntries(Frame):
     def __init__(self, master):
         Frame.__init__(self, master)
         all_passwords = get_all_passwords()
-        if all_passwords == []:
-            Label(self, text="You have not registered any passwords in the database yet").pack(side="top", fill="x", pady=10, padx=5)
-            Button(self, text="Return to start page",
-                                command=lambda: master.switch_frame(Menu)).pack(side="top", fill="x", pady=10, padx=5)
+        scrollbar = Scrollbar(self, orient="vertical")
+        scrollbar.pack(side=RIGHT,fill=Y)
+
+        mylist = Listbox(self, yscrollcommand = scrollbar.set)
 
         for entry in all_passwords:
-            password, website, username = entry[0], entry[1], entry[2]
+            website, username = entry[1], entry[2]
+            mylist.insert(END, website)
+            mylist.insert(END, username)
+            mylist.insert(END, "\n")
+        mylist.pack( side = LEFT, fill = BOTH )
+        Button(self, text="Return to start page",
+                command=lambda: master.switch_frame(Menu)).pack()
+        scrollbar.config( command = mylist.yview )
 
-            Label(self,text="Website:").pack()
-            website_text = Text(self, height=1, borderwidth=0, width=30)
-            website_text.insert(1.0, website)
-            website_text.pack()
-            website_text.configure(state="disabled")
-
-            Label(self,text="Username:").pack()
-            username_text = Text(self, height=1, borderwidth=0, width=30)
-            username_text.insert(1.0, username)
-            username_text.pack()
-            username_text.configure(state="disabled")    
-            
-            Label(self,text="Password:").pack()
-            password_text = Text(self, height=1, borderwidth=0, width=30)
-            password_text.insert(1.0, password)
-            password_text.pack()
-            password_text.configure(state="disabled")     
-
-            Label(self, text="").pack(pady=15)
 
 
 class UpdatePassword(Frame):
