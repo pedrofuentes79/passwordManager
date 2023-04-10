@@ -1,6 +1,10 @@
 import json
 
 def first_time_check():
+    '''
+    Checks if this is the first time the user has opened the application.
+    If it is, show the "sign up" page, otherwise the login one.
+    '''
     try:
         with open("config.json", "r+") as f:
 
@@ -15,6 +19,9 @@ def first_time_check():
             return True
 
 def change_first_time_to_false():
+    '''
+    Changes firstTime to false when the user has already signed up
+    '''
     config = json.load(open("config.json"))
     if config["firstTime"] == "true":
         config.pop("firstTime")
