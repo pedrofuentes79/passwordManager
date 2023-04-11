@@ -1,7 +1,10 @@
 import random
 import string
 
-def password_generator(length):
+def password_generator(length=20):
+    '''
+    Generates a random password of the given length
+    '''
     characters = list(string.ascii_letters + string.digits + '!#$%&/()=?*{]}[')
     random.shuffle(characters)
     password = []

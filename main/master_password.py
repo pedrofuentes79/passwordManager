@@ -15,12 +15,18 @@ c = conn.cursor()
 
 
 def add_master_password(password, username):
+    '''
+    Inserts Master Password entry to mp database.
+    '''
     with conn: 
         c.execute("INSERT INTO mp VALUES(:password, :username)", 
                                                     {'password': password, 
                                                         'username': username})
 
 def get_master_password():
+    '''
+    Retrieves encrypted master password from mp database.
+    '''
     c.execute("SELECT password FROM mp")
     return c.fetchone()
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -30,6 +36,9 @@ salt = b'12\x1f\xdf\xfe\xf1R\xa3\x1ch\xd1\x15\xc2n;\xc2'
 
 
 def verify_master_password(master_password):
+    '''
+    Checks if the master_password, when encrypted, is the same as the one in the mp database.
+    '''
     master_password_hash = get_master_password()
 
     hashed_compilation = hashlib.sha256(master_password.encode()).hexdigest()
@@ -40,16 +49,14 @@ def verify_master_password(master_password):
     the function may return a None value, which cannot be accessed via [0]
     '''                   
 
-
     return hashed_compilation == master_password_hash
 
 
 
 def encrypt_password(password_to_encrypt):
-    """
-    This function receives a password and encrypts it with the key obtained
-    from the master password.
-    """
+    '''
+    Receives a password and encrypts it with the key obtained from the master password.
+    '''
 
     master_password_hash = get_master_password()
 
@@ -61,10 +68,11 @@ def encrypt_password(password_to_encrypt):
     cipher = AES.new(key, AES.MODE_EAX)                        
     nonce = cipher.nonce                                        
     ciphertext, MACtag = cipher.encrypt_and_digest(data_conversion)
-
-    # Adds the nonce to the already encrypted ciphertext, 
-    # this nonce will be then removed from the encrypted password and it will be used to create the 
-    # same cipher object in order to decrypt
+    '''
+    Adds the nonce to the already encrypted ciphertext, 
+    this nonce will be then removed from the encrypted password and it will be used to create the 
+    same cipher object in order to decrypt
+    '''
     ciphertext_and_nonce = ciphertext + nonce              
 
     #This is what will be stored in the database
